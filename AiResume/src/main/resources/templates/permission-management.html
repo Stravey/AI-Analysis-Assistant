@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>用户权限管理 - 超级管理员</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* 下拉菜单权限类别样式 */
+        .permission-category-dropdown {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            background: #f9fafb;
+        }
+
+        .permission-category-dropdown h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .permission-item:hover {
+            background: #f3f4f6;
+        }
+
+        .permission-checkbox {
+            margin-right: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .permission-label {
+            font-size: 0.875rem;
+            color: #374151;
+            line-height: 1.4;
+        }
+
+        /* 权限类别样式 */
+        .permission-category {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            background: #f8fafc;
+        }
+
+        .permission-category strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .permission-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .permission-tag {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        /* 全选和类别选择样式 */
+        .select-all-section {
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            background: #e0f2fe;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem;
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .category-header input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        .category-header label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        /* 权限管理页面样式 */
+        .admin-container {
+            max-width: 1600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .admin-title {
+            color: #3b82f6;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .admin-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .refresh-btn, .export-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover, .export-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .btn-back {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-back:hover {
+            background-color: #2980b9;
+            text-decoration: none;
+        }
+
+        .btn-back i {
+            font-size: 12px;
+        }
+
+        .user-search {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            width: 250px;
+        }
+
+        /* 用户权限表格样式 */
+        .permissions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .permissions-table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .permissions-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+
+        .permissions-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .username {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .user-email {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+
+        /* 角色管理样式 */
+        .single-role-management {
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .role-dropdown {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            min-width: 200px;
+            background: white;
+        }
+
+        .current-role-display {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: #e0f2fe;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .current-role-badge {
+            background: #3b82f6;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .role-change-section {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .role-dropdown {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            flex: 1;
+            background: white;
+        }
+
+        .change-role-btn {
+            padding: 0.5rem 1rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .change-role-btn:hover {
+            background: #059669;
+        }
+
+        .role-info {
+            text-align: center;
+            padding-top: 0.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        /* 权限下拉菜单样式 */
+        .permissions-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-toggle {
+            background: #3b82f6;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .dropdown-toggle:hover {
+            background: #2563eb;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 1rem;
+            min-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: none;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .permission-item:hover {
+            background: #f3f4f6;
+        }
+
+        .permission-checkbox {
+            margin-right: 0.5rem;
+        }
+
+        .permission-label {
+            font-size: 0.875rem;
+            color: #374151;
+        }
+
+        .dropdown-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .save-btn, .cancel-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .save-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #059669;
+        }
+
+        .cancel-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background: #dc2626;
+        }
+
+        /* 权限标签样式 */
+        .permission-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .permission-tag {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+        }
+
+        /* 加载状态 */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 消息提示 */
+        .message {
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .admin-container {
+                margin: 1rem;
+                padding: 1rem;
+            }
+
+            .permissions-table {
+                font-size: 0.8rem;
+            }
+
+            .dropdown-menu {
+                min-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-container">
+    <div class="admin-header">
+        <h1 class="admin-title">用户权限管理系统</h1>
+        <div class="admin-controls">
+            <input class="user-search" id="userSearch" placeholder="搜索用户..." type="text">
+            <button class="refresh-btn" onclick="loadAllData()">🔄 刷新</button>
+            <a class="btn-back" href="/interview">
+                <i class="fas fa-arrow-left"></i>返回简历分析
+            </a>
+        </div>
+    </div>
+
+    <div id="messageContainer"></div>
+
+    <table class="permissions-table" id="permissionsTable">
+        <thead>
+        <tr>
+            <th width="25%">用户信息</th>
+            <th width="25%">角色</th>
+            <th width="40%">权限</th>
+            <th width="10%">操作</th>
+        </tr>
+        </thead>
+        <tbody id="permissionsBody">
+        <!-- 动态加载数据 -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // 全局变量
+    let allPermissions = [];
+    let allUsers = [];
+    let userRolesMap = new Map();
+    let currentEditingUserId = null;
+    let allRoles = [];
+    // 全局渲染锁
+    let isRendering = false;
+    let renderQueue = [];
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function () {
+        checkAdminAccess();
+        loadAllData();
+        initSearch();
+    });
+
+    // 加载所有数据
+    async function loadAllData() {
+        try {
+            showLoading(true);
+            await Promise.all([
+                loadAllUsers(),
+                loadAllPermissions(),
+                loadAllRoles()
+            ]);
+
+            await loadAllUserRoles();
+            await renderUserPermissions(allUsers);
+        } catch (error) {
+            showMessage('error', '数据加载失败: ' + error.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // 加载所有角色
+    async function loadAllRoles() {
+        try {
+            const response = await fetch('/api/roles', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
+
+            if (!response.ok) throw new Error('加载角色列表失败');
+
+            allRoles = await response.json();
+            console.log('角色数据加载成功:', allRoles);
+        } catch (error) {
+            console.error('加载角色列表错误:', error);
+            showMessage('error', error.message);
+        }
+    }
+
+
+    // 加载所有用户
+    async function loadAllUsers() {
+        try {
+            const response = await fetch('/api/admin/permissions/users', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
+
+            if (!response.ok) throw new Error('加载用户列表失败');
+
+            const users = await response.json();
+
+            // 加强去重逻辑：根据ID和用户名双重去重
+            const userMap = new Map();
+            users.forEach(user => {
+                if (!userMap.has(user.id) && !userMap.has(user.username)) {
+                    userMap.set(user.id, user);
+                    userMap.set(user.username, user);
+                }
+            });
+
+            allUsers = Array.from(userMap.values());
+
+            console.log('用户数据加载成功（加强去重后）:', allUsers);
+
+        } catch (error) {
+            console.error('加载用户列表错误:', error);
+            showMessage('error', error.message);
+        }
+    }
+
+
+    // 加载所有权限
+    async function loadAllPermissions() {
+        try {
+            const response = await fetch('/api/permissions', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
+
+            if (!response.ok) throw new Error('加载权限列表失败');
+
+            allPermissions = await response.json();
+            console.log('权限数据加载成功:', allPermissions);
+        } catch (error) {
+            console.error('加载权限列表错误:', error);
+            showMessage('error', error.message);
+        }
+    }
+
+    // 渲染函数
+    async function renderUserPermissions(users) {
+        // 如果正在渲染，加入队列
+        if (isRendering) {
+            renderQueue.push(users);
+            return;
+        }
+
+        isRendering = true;
+
+        try {
+            const tbody = document.getElementById('permissionsBody');
+            tbody.innerHTML = '';
+
+            if (!users || !Array.isArray(users)) {
+                tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 2rem;">
+                        数据加载异常或暂无用户数据
+                    </td>
+                </tr>
+            `;
+                return;
+            }
+
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 2rem;">
+                        暂无用户数据
+                    </td>
+                </tr>
+            `;
+                return;
+            }
+
+            // 渲染前再次去重
+            const uniqueUsers = users.reduce((unique, user) => {
+                if (!unique.some(u => u.id === user.id)) {
+                    unique.push(user);
+                }
+                return unique;
+            }, []);
+
+            console.log('准备渲染用户数量（去重后）:', uniqueUsers.length);
+
+            // 为每个用户获取权限
+            for (const user of uniqueUsers) {
+                const userPermissions = await getUserPermissions(user.id);
+                const userRoles = userRolesMap.get(user.id) || [];
+                const currentRole = userRoles.length > 0 ? userRoles[0] : null; // 只取第一个角色
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+            <td>
+                <div class="user-info">
+                    <span class="username">${user.username || '未知用户'}</span>
+                    <span class="user-email">${user.email || '无邮箱'}</span>
+                </div>
+            </td>
+            <td>
+                ${renderSingleRoleSelector(currentRole, user.id)}
+            </td>
+            <td>
+                ${renderPermissionsTags(userPermissions)}
+            </td>
+            <td>
+                <div class="permissions-dropdown">
+                    <button class="dropdown-toggle" onclick="togglePermissionsDropdown(${user.id})">
+                        管理权限
+                    </button>
+                    <div class="dropdown-menu" id="dropdown-${user.id}">
+                        ${renderPermissionsDropdown(userPermissions, user.id)}
+                    </div>
+                </div>
+            </td>
+        `;
+
+                tbody.appendChild(row);
+            }
+        } finally {
+            isRendering = false;
+
+            // 处理队列中的下一个渲染任务
+            if (renderQueue.length > 0) {
+                const nextUsers = renderQueue.shift();
+                setTimeout(() => renderUserPermissions(nextUsers), 100);
+            }
+        }
+    }
+
+    // 渲染单一角色选择器
+    function renderSingleRoleSelector(currentRole, userId) {
+        return `
+        <div class="single-role-management">
+            <div class="current-role-display">
+                ${currentRole ? `
+                    <span class="current-role-badge">
+                        ${currentRole.displayName || currentRole.name}
+                    </span>
+                ` : '<span style="color: #6b7280;">未分配角色</span>'}
+            </div>
+
+            <div class="role-change-section">
+                <select class="role-dropdown" id="role-select-${userId}">
+                    <option value="">选择新角色</option>
+                    ${renderRoleOptions(allRoles, currentRole)}
+                </select>
+                <button class="change-role-btn" onclick="changeUserRole(${userId})">
+                    更改角色
+                </button>
+            </div>
+
+            ${currentRole ? `
+                <div class="role-info">
+                    <small style="color: #6b7280;">
+                        当前角色: ${currentRole.displayName || currentRole.name}
+                    </small>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    }
+
+    // 渲染角色选项
+    function renderRoleOptions(allRoles, currentRole) {
+        const currentRoleId = currentRole ? currentRole.id : null;
+
+        return allRoles.map(role =>
+            `<option value="${role.id}" ${role.id === currentRoleId ? 'selected disabled' : ''}>
+            ${role.displayName || role.name}
+        </option>`
+        ).join('');
+    }
+
+    async function changeUserRole(userId) {
+        try {
+            const roleSelect = document.getElementById(`role-select-${userId}`);
+            const newRoleId = roleSelect.value;
+
+            if (!newRoleId) {
+                showMessage('warning', '请选择新角色');
+                return;
+            }
+
+            // 获取当前用户角色
+            const currentRoles = userRolesMap.get(userId) || [];
+            const currentRole = currentRoles.length > 0 ? currentRoles[0] : null;
+
+            // 如果选择的是当前角色，不做任何操作
+            if (currentRole && currentRole.id.toString() === newRoleId) {
+                showMessage('info', '角色未发生变化');
+                return;
+            }
+
+            // 确认更改
+            const newRole = allRoles.find(r => r.id.toString() === newRoleId);
+            if (!newRole) {
+                showMessage('error', '选择的角色无效');
+                return;
+            }
+
+            const confirmMessage = currentRole ?
+                `确定将角色从 "${currentRole.displayName || currentRole.name}" 更改为 "${newRole.displayName || newRole.name}" 吗？` :
+                `确定分配角色 "${newRole.displayName || newRole.name}" 吗？`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // 先移除所有现有角色（如果有）
+            await removeAllRolesFromUser(userId);
+
+            // 添加新角色
+            const response = await fetch(`/api/user-roles?userId=${userId}&roleId=${newRoleId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || '更改角色失败');
+            }
+
+            // 获取新角色的权限
+            const roleResponse = await fetch(`/api/roles/${newRoleId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
+
+            if (!roleResponse.ok) {
+                const errorText = await roleResponse.text();
+                showMessage('warning', '角色更改成功，但获取角色权限失败: ' + errorText);
+            } else {
+                const roleData = await roleResponse.json();
+                // 提取权限ID列表
+                const permissionIds = roleData.permissions ? 
+                    roleData.permissions.map(perm => perm.id) : [];
+                
+                if (permissionIds.length > 0) {
+                    // 将用户权限重置为角色权限
+                    const permResponse = await fetch(`/api/admin/permissions/assign?userId=${userId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(permissionIds)
+                    });
+                    
+                    if (!permResponse.ok) {
+                        const errorText = await permResponse.text();
+                        showMessage('warning', '角色更改成功，但同步权限失败: ' + errorText);
+                    } else {
+                        showMessage('success', '角色更改成功，并已同步重置用户权限');
+                    }
+                } else {
+                    showMessage('success', '角色更改成功，该角色无关联权限');
+                }
+            }
+
+            // 重新加载数据
+            await loadAllUserRoles();
+            await renderUserPermissions(allUsers);
+
+        } catch (error) {
+            console.error('更改角色错误:', error);
+            showMessage('error', error.message);
+        }
+    }
+
+    async function removeAllRolesFromUser(userId) {
+        try {
+            const response = await fetch(`/api/user-roles/users/${userId}/all`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || '移除所有角色失败');
+            }
+
+            console.log(`成功移除用户 ${userId} 的所有角色`);
+            return true;
+        } catch (error) {
+            console.error('移除所有角色错误:', error);
+            throw error;
+        }
+    }
+
+    // 加载用户角色信息
+    async function loadAllUserRoles() {
+        try {
+            const rolePromises = allUsers.map(user =>
+                fetch(`/api/user-roles/users/${user.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error(`获取用户 ${user.id} 角色失败`);
+                        return response.json();
+                    })
+                    .then(roles => {
+                        userRolesMap.set(user.id, roles);
+                        return {userId: user.id, roles};
+                    })
+                    .catch(error => {
+                        console.error(`获取用户 ${user.id} 角色错误:`, error);
+                        userRolesMap.set(user.id, []);
+                        return {userId: user.id, roles: []};
+                    })
+            );
+
+            await Promise.all(rolePromises);
+            console.log('所有用户角色加载完成:', userRolesMap);
+        } catch (error) {
+            console.error('加载用户角色错误:', error);
+            showMessage('error', '加载用户角色失败: ' + error.message);
+        }
+    }
+
+    // 获取用户权限
+    async function getUserPermissions(userId) {
+        try {
+            const response = await fetch(`/api/admin/user-permissions/users/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
+
+            if (!response.ok) throw new Error('获取用户权限失败');
+
+            const permissions = await response.json();
+            console.log('用户权限数据:', permissions);
+            return permissions;
+        } catch (error) {
+            console.error('获取用户权限错误:', error);
+            showMessage('error', error.message);
+            return [];
+        }
+    }
+
+    // 渲染权限标签
+    function renderPermissionsTags(permissions) {
+        if (!permissions || permissions.length === 0) {
+            return '<span style="color: #6b7280;">暂无权限</span>';
+        }
+
+        // 按权限类别分组显示
+        const groupedPermissions = groupPermissionsByCategory(permissions);
+
+        let html = '';
+        for (const [category, perms] of Object.entries(groupedPermissions)) {
+            html += `<div class="permission-category">
+                    <strong>${category}:</strong>
+                    <div class="permission-tags">
+                        ${perms.map(perm =>
+                `<span class="permission-tag">${perm.displayName}</span>`
+            ).join(' ')}
+                    </div>
+                 </div>`;
+        }
+
+        return html;
+    }
+
+    // 按权限类别分组
+    function groupPermissionsByCategory(permissions) {
+        const categories = {
+            '仪表盘': ['dashboard:access'],
+            '简历管理': ['resume:create', 'resume:view', 'resume:edit', 'resume:delete', 'resume:download'],
+            '职位管理': ['job:view', 'job:apply'],
+            '企业管理': ['company:view'],
+            '系统管理': ['admin:access', 'user:view', 'user:manage', 'role:manage', 'system:settings']
+        };
+
+        const grouped = {};
+
+        permissions.forEach(perm => {
+            let category = '其他';
+            for (const [cat, names] of Object.entries(categories)) {
+                if (names.includes(perm.name)) {
+                    category = cat;
+                    break;
+                }
+            }
+
+            if (!grouped[category]) {
+                grouped[category] = [];
+            }
+            grouped[category].push(perm);
+        });
+
+        return grouped;
+    }
+
+    // 渲染权限下拉菜单
+    function renderPermissionsDropdown(userPermissions, userId) {
+        if (allPermissions.length === 0) {
+            return '<div>权限列表加载中...</div>';
+        }
+
+        const groupedPermissions = groupPermissionsByCategory(allPermissions);
+        const allChecked = userPermissions.length === allPermissions.length;
+
+        let html = `<div style="max-height: 400px; overflow-y: auto;">
+                <div class="select-all-section">
+                    <input type="checkbox" id="select-all-${userId}"
+                           ${allChecked ? 'checked' : ''}
+                           onchange="toggleSelectAll(${userId})">
+                    <label for="select-all-${userId}">全选/取消全选</label>
+                </div>`;
+
+        for (const [category, perms] of Object.entries(groupedPermissions)) {
+            const categoryChecked = perms.every(perm =>
+                userPermissions.some(p => p.id === perm.id)
+            );
+
+            html += `<div class="permission-category-dropdown">
+                    <div class="category-header">
+                        <input type="checkbox"
+                               id="category-${userId}-${category.replace(/\s+/g, '-')}"
+                               ${categoryChecked ? 'checked' : ''}
+                               onchange="toggleCategory(${userId}, '${category}')">
+                        <label for="category-${userId}-${category.replace(/\s+/g, '-')}">
+                            <strong>${category}</strong>
+                        </label>
+                    </div>
+                    ${perms.map(perm => `
+                        <div class="permission-item">
+                            <input type="checkbox"
+                                   class="permission-checkbox category-${category.replace(/\s+/g, '-')}"
+                                   id="perm-${userId}-${perm.id}"
+                                   value="${perm.id}"
+                                   ${userPermissions.some(p => p.id === perm.id) ? 'checked' : ''}>
+                            <label class="permission-label" for="perm-${userId}-${perm.id}">
+                                ${perm.displayName}
+                                <small style="color: #6b7280; display: block;">${perm.description}</small>
+                            </label>
+                        </div>
+                    `).join('')}
+                 </div>`;
+        }
+
+        html += `</div>
+             <div class="dropdown-actions">
+                 <button class="save-btn" onclick="savePermissions(${userId})">保存</button>
+                 <button class="cancel-btn" onclick="closeDropdown(${userId})">取消</button>
+             </div>`;
+
+        return html;
+    }
+
+    // 全选/取消全选
+    function toggleSelectAll(userId) {
+        const selectAll = document.getElementById(`select-all-${userId}`);
+        const checkboxes = document.querySelectorAll(`#dropdown-${userId} .permission-checkbox`);
+
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+    }
+
+    // 全选/取消全选类别
+    function toggleCategory(userId, category) {
+        const categoryCheckbox = document.getElementById(`category-${userId}-${category.replace(/\s+/g, '-')}`);
+        const checkboxes = document.querySelectorAll(`#dropdown-${userId} .category-${category.replace(/\s+/g, '-')}`);
+
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = categoryCheckbox.checked;
+        });
+    }
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function () {
+        checkAdminAccess();
+        loadAllData();
+        initSearch();
+    });
+
+    // 检查管理员权限
+    async function checkAdminAccess() {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+            return false;
+        }
+
+        try {
+            const response = await fetch('/api/auth/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                    return false;
+                }
+                throw new Error('权限检查失败');
+            }
+
+            const userData = await response.json();
+            const hasAdminAccess = userData.roles &&
+                (userData.roles.includes('super_admin') || userData.roles.includes('admin'));
+
+            if (!hasAdminAccess) {
+                showMessage('error', '您没有权限访问此页面');
+                setTimeout(() => window.location.href = '/', 2000);
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            console.error('权限检查失败:', error);
+            window.location.href = '/login';
+            return false;
+        }
+    }
+
+
+    // 切换权限下拉菜单
+    function togglePermissionsDropdown(userId) {
+        // 关闭其他所有下拉菜单
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            if (menu.id !== `dropdown-${userId}`) {
+                menu.classList.remove('show');
+            }
+        });
+
+        // 切换当前下拉菜单
+        const dropdown = document.getElementById(`dropdown-${userId}`);
+        dropdown.classList.toggle('show');
+    }
+
+    // 关闭下拉菜单
+    function closeDropdown(userId) {
+        const dropdown = document.getElementById(`dropdown-${userId}`);
+        dropdown.classList.remove('show');
+    }
+
+    // 保存权限
+    async function savePermissions(userId) {
+        try {
+            showLoading(true);
+
+            // 获取选中的权限ID并过滤null值
+            const selectedPermissions = Array.from(
+                document.querySelectorAll(`#dropdown-${userId} input[type="checkbox"]:checked`)
+            )
+                .map(input => {
+                    const value = parseInt(input.value);
+                    return isNaN(value) ? null : value; // 转换失败时返回null
+                })
+                .filter(permissionId => permissionId !== null); // 过滤掉null值
+
+            console.log('过滤后的权限ID:', selectedPermissions);
+
+            if (selectedPermissions.length === 0) {
+                showMessage('warning', '请至少选择一个有效权限');
+                return;
+            }
+
+            const response = await fetch(`/api/admin/user-permissions/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(selectedPermissions)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || '保存权限失败');
+            }
+
+            showMessage('success', '权限更新成功');
+            closeDropdown(userId);
+
+            // 重新加载数据
+            await loadAllData();
+        } catch (error) {
+            console.error('保存权限错误:', error);
+            showMessage('error', error.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // 显示/隐藏加载状态
+    function showLoading(show) {
+        const table = document.getElementById('permissionsTable');
+        const refreshBtn = document.querySelector('.refresh-btn');
+
+        if (show) {
+            table.classList.add('loading');
+            refreshBtn.innerHTML = '<div class="spinner"></div>';
+        } else {
+            table.classList.remove('loading');
+            refreshBtn.innerHTML = '🔄 刷新';
+        }
+    }
+
+    // 显示消息
+    function showMessage(type, text) {
+        const container = document.getElementById('messageContainer');
+        const message = document.createElement('div');
+        message.className = `message ${type}`;
+        message.textContent = text;
+
+        container.appendChild(message);
+
+        // 5秒后自动消失
+        setTimeout(() => {
+            if (message.parentNode === container) {
+                container.removeChild(message);
+            }
+        }, 5000);
+    }
+
+    // 初始化搜索功能
+    function initSearch() {
+        const searchInput = document.getElementById('userSearch');
+        searchInput.addEventListener('input', debounce(function (e) {
+            filterUsers(e.target.value);
+        }, 300));
+    }
+
+    // 防抖函数
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // 过滤用户
+    function filterUsers(searchTerm) {
+        const rows = document.querySelectorAll('#permissionsBody tr');
+        rows.forEach(row => {
+            const username = row.querySelector('.username').textContent.toLowerCase();
+            const email = row.querySelector('.user-email').textContent.toLowerCase();
+            const searchLower = searchTerm.toLowerCase();
+
+            if (username.includes(searchLower) || email.includes(searchLower)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // 导出CSV
+    function exportToCSV() {
+        showMessage('info', 'CSV导出功能开发中...');
+    }
+
+    // 点击页面其他区域关闭下拉菜单
+    document.addEventListener('click', function (event) {
+        if (!event.target.closest('.permissions-dropdown')) {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.remove('show');
+            });
+        }
+    });
+</script>
+</body>
+</html>

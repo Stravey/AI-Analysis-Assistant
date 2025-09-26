@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>AI简历分析助手</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* 用户菜单样式 */
+        .user-menu-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid #3b82f6;
+            transition: all 0.3s;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.1);
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 添加角色徽章样式 */
+        .role-badge {
+            display: inline-block;
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 0.2rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            margin-right: 0.3rem;
+            margin-top: 0.3rem;
+        }
+
+        .user-info {
+            padding: 0.5rem 1rem;
+        }
+
+        .user-roles {
+            margin-top: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            width: 200px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 10px 0;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .user-info {
+            padding: 0 15px 10px;
+        }
+
+        .username {
+            font-weight: 600;
+            color: #333;
+            display: block;
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 8px 0;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 8px 15px;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: #f3f4f6;
+            color: #3b82f6;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        details {
+            margin-top: 10px;
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 0;
+        }
+
+        .ai-msg pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .ai-msg strong {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .ai-msg .section-title {
+            font-size: 1.1em;
+            color: #2563eb;
+            font-weight: 600;
+            margin: 1rem 0 0.5rem 0;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .ai-msg .list-item {
+            margin: 0.3rem 0;
+            padding-left: 1rem;
+        }
+
+        .ai-msg .rating {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .cancel-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f87171;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            vertical-align: middle;
+            margin-left: 10px;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .cancel-btn:hover {
+            background: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: #3b82f6;
+            margin-bottom: 2rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .chat-container {
+            width: 80%;
+            margin: 2rem auto;
+            border-radius: 12px;
+            padding: 2rem;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-box {
+            height: 500px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .user-msg, .ai-msg {
+            max-width: 80%;
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            line-height: 1.5;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .user-msg {
+            background-color: #3b82f6;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-msg {
+            background-color: #f1f5f9;
+            color: #334155;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .file-input {
+            position: relative;
+            padding: 0.8rem;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-input:hover {
+            border-color: #3b82f6;
+            background: #f0f7ff;
+        }
+
+        button[type="submit"] {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .nav-links a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+
+        /* 滚动条样式 */
+        .chat-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .loading-dots {
+            display: inline-flex;
+        }
+
+        .loading-dots span {
+            animation: blink 1.4s infinite both;
+            font-weight: bold;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0%, 80%, 100% {
+                opacity: 0.2;
+            }
+            40% {
+                opacity: 1;
+            }
+        }
+
+        /* 对话输入区域样式 */
+        .dialogue-input-section {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .dialogue-input {
+            flex: 1;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            padding: 0.8rem;
+            font-size: 1rem;
+        }
+
+        .dialogue-submit {
+            background-color: #3b82f6;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+        }
+
+        .dialogue-submit:hover {
+            background-color: #235099;
+        }
+
+        .dialogue-hint {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        /* 模型选择器样式 */
+        .model-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .model-btn {
+            background-color: #e5e7eb;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .model-btn.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .model-btn:hover:not(.active) {
+            background-color: #d1d5db;
+        }
+
+        /* 模型选择器样式 */
+        .model-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .model-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background-color: #f5f5f5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .model-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        .model-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* 通知样式 */
+        .model-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 1000;
+            animation: fade-in 0.3s ease;
+        }
+
+        .model-notification.fade-out {
+            animation: fade-out 0.3s ease forwards;
+        }
+
+        .close-notification {
+            cursor: pointer;
+            font-size: 18px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .close-notification:hover {
+            opacity: 1;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                bottom: 10px;
+            }
+            to {
+                opacity: 1;
+                bottom: 20px;
+            }
+        }
+
+        @keyframes fade-out {
+            from {
+                opacity: 1;
+                bottom: 20px;
+            }
+            to {
+                opacity: 0;
+                bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="user-menu-container">
+        <div class="user-avatar" id="userAvatar">
+            <img alt="用户头像" th:src="@{/images/default-avatar.png}">
+        </div>
+        <div class="dropdown-menu" id="dropdownMenu">
+            <div class="user-info">
+                <span class="username" id="displayUsername">未登录用户</span>
+                <div class="user-roles" id="displayRoles"></div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="/admin/users" id="adminLink" style="display:none;">用户管理</a>
+            <a class="dropdown-item" href="/admin/permissions" id="permissionsLink" style="display:none;">权限管理</a>
+            <a class="dropdown-item" href="#" id="logoutBtn">登出账号</a>
+        </div>
+    </div>
+</div>
+<h1>AI简历分析助手</h1>
+
+<div class="chat-container">
+    <!-- 模型选择器 -->
+    <div class="model-selector">
+        <button class="model-btn active" data-model="deepseek">DeepSeek</button>
+        <button class="model-btn" data-model="doubao">豆包</button>
+    </div>
+    <div class="chat-box" id="chatBox">
+        <div class="ai-msg">
+            您好！我是您的AI简历分析助手。请上传简历文件，我将为您提供专业分析建议，然后您可以继续与我对话讨论。
+        </div>
+    </div>
+
+    <!-- 文件上传表单 -->
+    <form class="upload-section" enctype="multipart/form-data" id="resumeForm">
+        <label class="file-input" style="position: relative;">
+            <span id="fileInputLabelText">点击选择简历文件</span>
+            <input accept=".pdf,.doc,.docx" id="resumeInput" name="resume" style="display: none;" type="file">
+            <button aria-label="取消选择" class="cancel-btn" id="cancelBtn" style="display:none;" type="button">
+                &times;
+            </button>
+        </label>
+        <button type="submit">分析我的简历</button>
+    </form>
+
+    <div id="fileTip" style="margin-bottom: 1rem; color: #3b82f6; font-weight: 500;"></div>
+
+    <!-- 对话输入区域 - 整合到主聊天框 -->
+    <div class="dialogue-input-section">
+        <input id="resumeTextContent" type="hidden">
+        <input class="dialogue-input" id="dialogueInput"
+               placeholder="例如：这份简历适合什么工作？如何改进？有什么建议？"
+               type="text">
+        <button class="dialogue-submit" id="dialogueSubmit" type="button">发送对话</button>
+    </div>
+    <div class="dialogue-hint" id="dialogueHint">
+        请先上传简历文件，然后可以继续与AI对话讨论
+    </div>
+</div>
+
+<script>
+    // JWT Token管理
+    let authToken = localStorage.getItem('authToken');
+    // DOM元素
+    const chatBox = document.getElementById('chatBox');
+    const fileInput = document.getElementById('resumeInput');
+    const fileInputLabelText = document.getElementById('fileInputLabelText');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const fileTip = document.getElementById('fileTip');
+    const resumeForm = document.getElementById('resumeForm');
+    const dialogueInput = document.getElementById('dialogueInput');
+    const dialogueSubmit = document.getElementById('dialogueSubmit');
+    const dialogueHint = document.getElementById('dialogueHint');
+    const resumeTextContent = document.getElementById('resumeTextContent');
+    const modelButtons = document.querySelectorAll('.model-btn');
+
+    let hasResumeContent = false;
+    let currentModel = 'deepseek'; // 默认模型
+
+    // 用户菜单交互元素
+    const userAvatar = document.getElementById('userAvatar');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const displayUsername = document.getElementById('displayUsername');
+    const displayRoles = document.getElementById('displayRoles');
+    const adminLink = document.getElementById('adminLink');
+    const permissionsLink = document.getElementById('permissionsLink');
+
+    // 会话ID
+    let sessionId = generateSessionId();
+
+    // ====== 初始化函数 ======
+    document.addEventListener('DOMContentLoaded', function () {
+        // 初始化用户菜单
+        initUserMenu();
+
+        // 检查登录状态
+        checkLoginStatus();
+
+        // 初始化文件上传事件
+        initFileUpload();
+
+        // 初始化对话功能
+        initDialogue();
+
+        // 初始化模型选择器
+        initModelSelector();
+    });
+
+    // ====== 模型选择器功能 ======
+    function initModelSelector() {
+        modelButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                // 移除所有按钮的active类
+                modelButtons.forEach(btn => btn.classList.remove('active'));
+                // 给当前点击的按钮添加active类
+                this.classList.add('active');
+                // 更新当前模型
+                currentModel = this.dataset.model;
+                // 可以在这里添加模型切换后的逻辑
+                // showMessage('ai', `已切换到${this.textContent}模型`);
+            });
+        });
+    }
+
+    // ====== 用户菜单功能 ======
+    function initUserMenu() {
+        if (!userAvatar || !dropdownMenu) {
+            console.error('用户菜单元素未找到');
+            return;
+        }
+
+        // 点击头像切换菜单显示
+        userAvatar.addEventListener('click', function (e) {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+        });
+
+        // 点击页面其他地方关闭菜单
+        document.addEventListener('click', function (e) {
+            if (!userAvatar.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+
+        // 阻止菜单内部点击事件冒泡
+        dropdownMenu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        // 登出功能
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                performLogout();
+            });
+        }
+    }
+
+    // 更新用户菜单显示
+    function updateUserMenu(userData) {
+        if (!userData) return;
+
+        // 更新用户名
+        if (displayUsername) {
+            displayUsername.textContent = userData.username || '未登录用户';
+        }
+
+        // 更新角色显示
+        if (displayRoles && userData.roles) {
+            displayRoles.innerHTML = userData.roles
+                .map(role => `<span class="role-badge">${role}</span>`)
+                .join(' ');
+        }
+
+        // 获取用户权限列表（假设userData中包含permissions数组）
+        const userPermissions = userData.permissions || [];
+
+        // 根据权限显示/隐藏管理链接
+        if (adminLink) {
+            // 权限10: admin:access (访问管理后台)
+            adminLink.style.display = userPermissions.includes('admin:access') ? 'block' : 'none';
+        }
+
+        if (permissionsLink) {
+            // 权限13: role:manage (管理角色)
+            permissionsLink.style.display = userPermissions.includes('role:manage') ? 'block' : 'none';
+        }
+    }
+
+    // 登出函数
+    function performLogout() {
+        const token = localStorage.getItem('authToken');
+
+        if (token) {
+            fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).catch(error => {
+                console.error('登出API调用失败:', error);
+            });
+        }
+
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+    }
+
+    function fetchWithAuth(url, options = {}) {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            window.location.href = '/login';
+            return Promise.reject('未登录');
+        }
+
+        return fetch(url, {
+            ...options,
+            headers: {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            }
+        });
+    }
+
+    // ====== 登录功能 ======
+    document.getElementById('loginForm')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorMessage = document.getElementById('errorMessage');
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({username, password})
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '登录失败');
+            }
+
+            const data = await response.json();
+            handleLoginSuccess(data);
+
+        } catch (error) {
+            console.error('登录错误:', error);
+            if (errorMessage) {
+                errorMessage.textContent = error.message || '登录失败，请检查用户名和密码';
+                errorMessage.style.display = 'block';
+                errorMessage.style.color = '#ef4444';
+            }
+        }
+    });
+
+    // 登录成功处理
+    function handleLoginSuccess(data) {
+        if (data.token && data.user) {
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            updateUserMenu(data.user);
+
+            // 重定向到主页面
+            const urlParams = new URLSearchParams(window.location.search);
+            window.location.href = urlParams.get('redirect') || '/interview';
+        }
+    }
+
+    // ====== 用户状态管理 ======
+    function checkLoginStatus() {
+        const token = localStorage.getItem('authToken');
+        const user = localStorage.getItem('user');
+
+        // 更新本地存储的用户信息
+        if (user) {
+            try {
+                updateUserMenu(JSON.parse(user));
+            } catch (e) {
+                console.error('解析用户信息失败:', e);
+            }
+        }
+
+        if (!token) {
+            showUnauthenticatedState();
+            return;
+        }
+
+        // 验证Token并获取最新用户信息
+        fetch('/api/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                if (response.status === 401) {
+                    throw new Error('登录已过期');
+                }
+                throw new Error('获取用户信息失败');
+            })
+            .then(data => {
+                if (data.username) {
+                    localStorage.setItem('user', JSON.stringify(data));
+                    updateUserMenu(data);
+                }
+            })
+            .catch(error => {
+                console.error('用户状态检查失败:', error);
+                showUnauthenticatedState();
+            });
+    }
+
+    function showUnauthenticatedState() {
+        if (displayUsername) {
+            displayUsername.textContent = '未登录用户';
+        }
+        if (displayRoles) {
+            displayRoles.innerHTML = '';
+        }
+        if (adminLink) {
+            adminLink.style.display = 'none';
+        }
+    }
+
+    // ====== 文件上传功能 ======
+    function initFileUpload() {
+        if (!fileInput || !resumeForm) return;
+
+        fileInput.addEventListener('change', updateFileSelection);
+        cancelBtn?.addEventListener('click', clearFileSelection);
+        resumeForm.addEventListener('submit', handleFileUpload);
+    }
+
+    function updateFileSelection() {
+        if (this.files.length) {
+            fileInputLabelText.textContent = `已选择: ${this.files[0].name}`;
+            if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+            if (fileTip) fileTip.textContent = `已上传文件: ${this.files[0].name}`;
+        } else {
+            clearFileSelection();
+        }
+    }
+
+    function clearFileSelection() {
+        fileInput.value = '';
+        fileInputLabelText.textContent = '点击选择简历文件';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (fileTip) fileTip.textContent = '';
+    }
+
+    async function handleFileUpload(e) {
+        e.preventDefault();
+        if (!fileInput.files.length) return;
+
+        showMessage('user', `已上传简历: ${fileInput.files[0].name}`);
+        const loadingMsg = showLoadingMessage();
+
+        try {
+            const formData = new FormData();
+            formData.append('resume', fileInput.files[0]);
+            formData.append('model', currentModel);
+
+            const response = await fetch('/api/resume/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('分析失败');
+            const data = await response.json();
+
+            removeLoadingMessage(loadingMsg);
+
+            if (data.error) {
+                showErrorMessage(data.error);
+            } else {
+                resumeTextContent.value = data.aiFeedback;
+                hasResumeContent = true;
+                if (dialogueHint) dialogueHint.textContent = "现在您可以继续与AI对话讨论这份简历";
+                if (dialogueInput) {
+                    dialogueInput.disabled = false;
+                    dialogueInput.placeholder = "例如：这份简历适合什么工作？如何改进？";
+                }
+                showAIResult(data.aiFeedback);
+            }
+        } catch (error) {
+            removeLoadingMessage(loadingMsg);
+            showErrorMessage(error.message);
+        }
+    }
+
+    // ====== 对话功能 ======
+    function initDialogue() {
+        if (!dialogueSubmit || !dialogueInput) return;
+
+        dialogueSubmit.addEventListener('click', handleDialogueSubmit);
+        dialogueInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                handleDialogueSubmit();
+            }
+        });
+    }
+
+    async function handleDialogueSubmit() {
+        const question = dialogueInput.value.trim();
+        if (!question || !hasResumeContent) {
+            showErrorMessage("请先上传简历文件");
+            return;
+        }
+
+        showMessage('user', question);
+        dialogueInput.value = '';
+        const loadingMsg = showLoadingMessage();
+
+        try {
+            const response = await fetch('/api/resume/dialogue', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Session-ID': sessionId
+                },
+                body: JSON.stringify({
+                    question: question,
+                    resumeText: resumeTextContent.value,
+                    model: currentModel
+                })
+            });
+
+            if (!response.ok) throw new Error('对话失败');
+            const data = await response.json();
+
+            removeLoadingMessage(loadingMsg);
+
+            if (data.error) {
+                showErrorMessage(data.error);
+            } else {
+                showMessage('ai', data.aiResponse);
+            }
+        } catch (error) {
+            removeLoadingMessage(loadingMsg);
+            showErrorMessage(error.message);
+        }
+    }
+
+    // ====== 辅助函数 ======
+    function generateSessionId() {
+        return 'session-' + Math.random().toString(36).substring(2, 15);
+    }
+
+    function showLoadingMessage() {
+        const loadingMsg = document.createElement('div');
+        loadingMsg.className = 'ai-msg';
+        loadingMsg.innerHTML = `
+            <div class="loading-dots">
+                <span>.</span><span>.</span><span>.</span>
+            </div>
+            <div id="timeoutHint" style="display:none; font-size:0.9rem; color:#6b7280; margin-top:0.5rem;">
+                请再耐心等一下_:(‘□’」 ∠):_
+            </div>
+        `;
+        chatBox.appendChild(loadingMsg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // 设置超时提示
+        loadingMsg.timeoutId = setTimeout(() => {
+            const hint = loadingMsg.querySelector('#timeoutHint');
+            if (hint) hint.style.display = 'block';
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }, 30000);
+
+        return loadingMsg;
+    }
+
+    function removeLoadingMessage(loadingMsg) {
+        if (loadingMsg && loadingMsg.parentNode === chatBox) {
+            clearTimeout(loadingMsg.timeoutId);
+            chatBox.removeChild(loadingMsg);
+        }
+    }
+
+    function showMessage(role, content) {
+        const messageClass = role === 'user' ? 'user-msg' : 'ai-msg';
+        const formattedContent = role === 'ai' ? formatAIResponse(content) : content;
+
+        chatBox.innerHTML += `
+            <div class="${messageClass}">
+                ${role === 'ai' ? formattedContent : `<strong>${formattedContent}</strong>`}
+            </div>
+        `;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function showErrorMessage(message) {
+        chatBox.innerHTML += `
+            <div class="ai-msg" style="color:#ef4444;">
+                <strong>错误:</strong> ${message}
+            </div>
+        `;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function showAIResult(content) {
+        const formattedContent = formatAIResponse(content);
+        chatBox.innerHTML += `
+            <div class="ai-msg">
+                ${formattedContent}
+            </div>
+        `;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function formatAIResponse(content) {
+        try {
+            // 尝试解析为JSON
+            try {
+                const jsonData = JSON.parse(content);
+                return formatJSONResponse(jsonData);
+            } catch (e) {
+                // 如果不是JSON，使用Markdown格式化
+                return formatMarkdownResponse(content);
+            }
+        } catch (error) {
+            console.error('格式化错误:', error);
+            return content;
+        }
+    }
+
+    function formatJSONResponse(data) {
+        let result = '<div style="font-family: system-ui, sans-serif; line-height: 1.6;">';
+
+        function formatObject(obj, depth = 0) {
+            let html = '';
+            const indent = '&nbsp;&nbsp;'.repeat(depth);
+            const bullet = depth === 0 ? '▸' : '•';
+
+            for (const [key, value] of Object.entries(obj)) {
+                const keyStyle = `font-weight: 600; color: ${depth === 0 ? '#3b82f6' : '#4b5563'}`;
+
+                if (Array.isArray(value)) {
+                    html += `${indent}<span style="${keyStyle}">${bullet} ${key}:</span><br>`;
+                    html += formatArray(value, depth + 1);
+                } else if (typeof value === 'object' && value !== null) {
+                    html += `${indent}<span style="${keyStyle}">${bullet} ${key}:</span><br>`;
+                    html += formatObject(value, depth + 1);
+                } else {
+                    const val = value ? value.toString() : '';
+                    html += `${indent}<span style="${keyStyle}">${bullet} ${key}:</span> `;
+                    html += `<span style="color: #374151">${val}</span><br>`;
+                }
+            }
+            return html;
+        }
+
+        function formatArray(arr, depth = 0) {
+            let html = '';
+            const indent = '&nbsp;&nbsp;'.repeat(depth);
+
+            arr.forEach((item, index) => {
+                if (typeof item === 'object' && item !== null) {
+                    html += formatObject(item, depth);
+                } else {
+                    const val = item ? item.toString() : '';
+                    html += `${indent}• ${val}<br>`;
+                }
+            });
+            return html;
+        }
+
+        result += formatObject(data);
+        result += '</div>';
+        return result;
+    }
+
+    function formatMarkdownResponse(text) {
+        let formattedText = text;
+
+        // 处理代码块
+        formattedText = formattedText.replace(/```json([\s\S]*?)```/g, '<pre style="background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; overflow-x: auto;">$1</pre>');
+        formattedText = formattedText.replace(/```([\s\S]*?)```/g, '<pre style="background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; overflow-x: auto;">$1</pre>');
+
+        // 处理标题
+        formattedText = formattedText.replace(/### (.*?)(?=\n|$)/g, '<h3 style="color: #3b82f6; margin: 1.5rem 0 0.5rem 0; font-size: 1.1em;">$1</h3>');
+        formattedText = formattedText.replace(/## (.*?)(?=\n|$)/g, '<h2 style="color: #2563eb; margin: 1.75rem 0 0.75rem 0; font-size: 1.2em;">$1</h2>');
+        formattedText = formattedText.replace(/# (.*?)(?=\n|$)/g, '<h1 style="color: #1d4ed8; margin: 2rem 0 1rem 0; font-size: 1.3em; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem;">$1</h1>');
+
+        // 处理强调文本
+        formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+        // 处理列表
+        formattedText = formattedText.replace(/^\s*\*\s(.*$)/gm, '<li style="margin: 0.3rem 0;">$1</li>');
+        formattedText = formattedText.replace(/^\s*-\s(.*$)/gm, '<li style="margin: 0.3rem 0;">$1</li>');
+        formattedText = formattedText.replace(/^\s*\d+\.\s(.*$)/gm, '<li style="margin: 0.3rem 0;">$1</li>');
+        formattedText = formattedText.replace(/(<li.*?<\/li>)+/g, '<ul style="padding-left: 1.5rem; margin: 0.5rem 0;">$&</ul>');
+
+        // 处理换行和段落
+        formattedText = formattedText.replace(/\n\n/g, '</p><p>');
+        formattedText = formattedText.replace(/\n/g, '<br>');
+        formattedText = '<p>' + formattedText + '</p>';
+
+        // 处理特殊标记
+        formattedText = formattedText.replace(/★+/g, '<span style="color: #f59e0b">$&</span>');
+        formattedText = formattedText.replace(/!(重要|注意)/g, '<span style="background: #fef3c7; padding: 0.2rem 0.4rem; border-radius: 0.25rem;">$1</span>');
+
+        // 处理技术栈强调
+        const techKeywords = ['Java', 'Spring', 'React', 'MySQL', 'Docker', 'Python', 'JavaScript'];
+        techKeywords.forEach(tech => {
+            const regex = new RegExp(`(${tech})(\\([^)]*\\))?`, 'g');
+            formattedText = formattedText.replace(regex,
+                '<span style="background: #eff6ff; padding: 0.2rem 0.4rem; border-radius: 0.25rem; margin: 0 0.2rem;"><strong>$1</strong>$2</span>');
+        });
+
+        return formattedText;
+    }
+
+    // 初始化禁用对话输入
+    if (dialogueInput) {
+        dialogueInput.disabled = true;
+    }
+</script>
+</body>
+</html>
